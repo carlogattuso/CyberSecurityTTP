@@ -21,6 +21,7 @@
     "typescript": "^3.8.2"
   },
   "devDependencies": {
+    "object-sha": "^1.0.5",
     "rsa": "file:../rsa"
   }
 }
