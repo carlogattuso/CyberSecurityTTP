@@ -5,12 +5,13 @@ const path = require('path');
 const server = require('http').createServer();
 const PubSubManager = require('./models/pubsub');
 
+const pubSubManager = new PubSubManager();
+
 const app = express();
+
 import bodyParser from 'body-parser';
 import router from './routes/index';
 import cors from 'cors';
-const pubSubManager = new PubSubManager();
-
 
 const wss = new WebSocketServer({ server: server });
 
@@ -22,8 +23,8 @@ app.use( bodyParser.json() );
 wss.on('connection', (ws, req) => {
     console.log(`Connection request from: ${req.connection.remoteAddress}`);
     ws.on('message', (data) => {
-        console.log('data: ' + data);
         const json = JSON.parse(data);
+
         const request = json.request;
         const message = json.message;
         const channel = json.channel;

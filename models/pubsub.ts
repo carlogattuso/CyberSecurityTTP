@@ -10,8 +10,13 @@ class PubSubManager {
         };
         this.brokerId = setInterval(() => { this.broker() }, 1000);
     }
+
     subscribe(subscriber, channel) {
-        console.log(`subscribing to ${channel}`);
+        console.log("New subscriber");
+        console.log({
+            subscriber: subscriber.name,
+            channel: channel
+        });
         this.channels[channel].subscribers.push(subscriber);
     }
 
@@ -20,7 +25,12 @@ class PubSubManager {
     }
 
     publish(publisher, channel, message) {
-        console.log(`publishing to ${channel}`);
+        console.log("Message published");
+        console.log({
+            publisher: publisher.name,
+            channel: channel,
+            message: message
+        });
         this.channels[channel].message = message;
     }
 
@@ -29,8 +39,11 @@ class PubSubManager {
             if (this.channels.hasOwnProperty(channel)) {
                 const channelObj = this.channels[channel];
                 if (channelObj.message) {
-                    console.log(`found message: ${channelObj.message} in ${channel}`);
-
+                    console.log("New message found:");
+                    console.log({
+                        channel:channel,
+                        message:channelObj.message
+                    });
                     channelObj.subscribers.forEach(subscriber => {
                         subscriber.send(JSON.stringify({
                             message: channelObj.message

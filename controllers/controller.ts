@@ -4,15 +4,16 @@ import * as bc from 'bigint-conversion';
 import {KeyPair,PublicKey} from "rsa";
 const rsa = require('rsa');
 const sha = require('object-sha');
+const WebSocket = require('ws');
+const ws = new WebSocket('ws://localhost:50001');
 
 let keyPair: KeyPair;
 
 let aPubKey;
 
-let kpo: string;
-let key: string;
-
-let message;
+let pko;
+let pkp;
+let key;
 
 async function firstAsync() {
     return rsa.generateRandomKeys();
@@ -21,32 +22,44 @@ async function firstAsync() {
 firstAsync().then(data => keyPair = data);
 
 exports.publishKey = async function (req: Request, res: Response){
-    let b = req.body.body;
-    let signature = req.body.signature;
+    let json = req.body;
+    let body = JSON.parse(JSON.stringify(json.body));
+    aPubKey = new PublicKey(bc.hexToBigint(json.pubKey.e),bc.hexToBigint(json.pubKey.n));
+    let proofDigest = bc.bigintToHex(await aPubKey.verify(bc.hexToBigint(json.signature)));
+    let bodyDigest = await sha.digest(body);
+    if(bodyDigest === proofDigest) {
+        pko = json.signature;
+        key = body.msg;
+        let mBody = JSON.parse(JSON.stringify({ type: 4, src: 'TTP', dst: ['A','B'], msg: key, timestamp: Date.now() }));
 
-    aPubKey = new PublicKey(bc.hexToBigint(req.body.pubKey.e),bc.hexToBigint(req.body.pubKey.n));
-    let proofDigest = bc.bigintToHex(await aPubKey.verify(bc.hexToBigint(signature)));
-    console.log(proofDigest);
-    console.log(await digest(JSON.stringify(b)));
-    let test = await digest(JSON.stringify(b));
-    if(test === proofDigest){
-        kpo = signature;
-        key = b.msg;
-        let body = { type: 4, src: 'TTP', dst: ['A','B'], msg: b.msg, timestamp: Date.now() };
-        let sign = '';
-        await digest(body)
+        await digest(mBody)
             .then(data => keyPair.privateKey.sign(bc.hexToBigint(data)))
-            .then(data => sign = bc.bigintToHex(data));
+            .then(data => pkp = bc.bigintToHex(data));
 
-        message = { body: body, signature: sign,
-            pubKey: { e: bc.bigintToHex(keyPair.publicKey.e), n: bc.bigintToHex(keyPair.publicKey.n) }
-        };
-        return res.status(200).send(message);
+        let jsonToSend = JSON.parse(JSON.stringify({
+            body: mBody, signature: pkp,
+            pubKey: {e: bc.bigintToHex(keyPair.publicKey.e), n: bc.bigintToHex(keyPair.publicKey.n)}
+        }));
+
+        console.log("All worked fine!");
+        console.log({
+            pko:pko,
+            pkp:pkp,
+            key:key
+        });
+
+        ws.send(JSON.stringify({
+            request: 'PUBLISH',
+            message: jsonToSend,
+            channel: 'key'
+        }));
+
+        return res.status(200).send({status:'ok'});
     } else {
-        res.status(401).send({error:"Bad authentication of proof of origin"})
+        return res.status(401).send({error:"Bad authentication of proof of key origin"})
     }
 };
 
-async function digest(obj:any) {
+async function digest(obj) {
     return await sha.digest(obj,'SHA-256');
 }
