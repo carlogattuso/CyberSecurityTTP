@@ -5,7 +5,6 @@ import {KeyPair,PublicKey} from "rsa";
 const rsa = require('rsa');
 const sha = require('object-sha');
 const WebSocket = require('ws');
-const ws = new WebSocket('ws://localhost:50001');
 
 let keyPair: KeyPair;
 
@@ -14,6 +13,8 @@ let aPubKey;
 let pko;
 let pkp;
 let key;
+
+let ws;
 
 async function firstAsync() {
     return rsa.generateRandomKeys();
@@ -41,20 +42,7 @@ exports.publishKey = async function (req: Request, res: Response){
             pubKey: {e: bc.bigintToHex(keyPair.publicKey.e), n: bc.bigintToHex(keyPair.publicKey.n)}
         }));
 
-        console.log("All worked fine!");
-        console.log({
-            pko:pko,
-            pkp:pkp,
-            key:key
-        });
-
-        ws.send(JSON.stringify({
-            request: 'PUBLISH',
-            message: jsonToSend,
-            channel: 'key'
-        }));
-
-        return res.status(200).send({status:'ok'});
+        return res.status(200).send(jsonToSend);
     } else {
         return res.status(401).send({error:"Bad authentication of proof of key origin"})
     }
