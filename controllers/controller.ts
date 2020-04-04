@@ -4,7 +4,6 @@ import * as bc from 'bigint-conversion';
 import {KeyPair,PublicKey} from "rsa";
 const rsa = require('rsa');
 const sha = require('object-sha');
-const WebSocket = require('ws');
 
 let keyPair: KeyPair;
 
@@ -13,8 +12,6 @@ let aPubKey;
 let pko;
 let pkp;
 let key;
-
-let ws;
 
 async function firstAsync() {
     return rsa.generateRandomKeys();
@@ -28,7 +25,7 @@ exports.publishKey = async function (req: Request, res: Response){
     aPubKey = new PublicKey(bc.hexToBigint(json.pubKey.e),bc.hexToBigint(json.pubKey.n));
     let proofDigest = bc.bigintToHex(await aPubKey.verify(bc.hexToBigint(json.signature)));
     let bodyDigest = await sha.digest(body);
-    if(bodyDigest === proofDigest) {
+    if(bodyDigest === proofDigest && checkTimestamp(body.timestamp)) {
         pko = json.signature;
         key = body.msg;
         let mBody = JSON.parse(JSON.stringify({ type: 4, src: 'TTP', dst: ['A','B'], msg: key, timestamp: Date.now() }));
@@ -41,12 +38,17 @@ exports.publishKey = async function (req: Request, res: Response){
             body: mBody, signature: pkp,
             pubKey: {e: bc.bigintToHex(keyPair.publicKey.e), n: bc.bigintToHex(keyPair.publicKey.n)}
         }));
-
+        //Emit socket.io
         return res.status(200).send(jsonToSend);
     } else {
         return res.status(401).send({error:"Bad authentication of proof of key origin"})
     }
 };
+
+function checkTimestamp(timestamp:number) {
+    const time = Date.now();
+    return (timestamp > (time - 300000) && timestamp < (time + 300000));
+}
 
 async function digest(obj) {
     return await sha.digest(obj,'SHA-256');
