@@ -12,5 +12,6 @@ let controller = require('../controllers/controller');
  * Non-Repudiation Service
  */
 router.post('/nr', controller.publishKey);
+router.get('/nrk', controller.getPublishedKey);
 
 export default router;
