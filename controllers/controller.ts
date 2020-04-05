@@ -15,6 +15,7 @@ let aPubKey;
 let pko;
 let pkp;
 let key;
+let iv;
 
 let mBody;
 
@@ -39,7 +40,9 @@ exports.publishKey = async function (req: Request, res: Response){
     if(bodyDigest.trim() === proofDigest.trim() && checkTimestamp(body.timestamp)) {
         pko = json.signature;
         key = body.msg;
-        mBody = JSON.parse(JSON.stringify({ type: 4, src: 'TTP', dst: ['A','B'], msg: key, timestamp: Date.now() }));
+        iv = body.iv;
+
+        mBody = JSON.parse(JSON.stringify({ type: 4, src: 'TTP', dst: ['A','B'], msg: key, iv: iv, timestamp: Date.now() }));
 
         await digest(mBody)
             .then(data => keyPair.privateKey.sign(bc.hexToBigint(data)))
