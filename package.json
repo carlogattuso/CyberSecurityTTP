@@ -24,6 +24,6 @@
   "devDependencies": {
     "object-sha": "^1.0.5",
     "rsa": "file:../rsa",
-    "ws": "^7.2.3"
+    "ws": "^7.4.6"
   }
 }
